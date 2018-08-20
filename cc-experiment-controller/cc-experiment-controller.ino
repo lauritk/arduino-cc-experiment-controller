@@ -17,7 +17,9 @@ unsigned long const ITI_HIGH_B = ITI_HIGH_A;
 
 int const TRIALS = 60;
 
-int const CS_PIN = 3, CS_TONE_PIN = 8, US_PIN = 5, SWITCH_PIN = 12;
+int const CS_PIN = 3, CS_TONE_PIN = 8, US_PIN = 5, SWITCH_PIN = 6, START_PIN = 4;
+
+// START_PIN can be substitute with reset switch
 
 
 
@@ -25,20 +27,31 @@ boolean const DEBUG = false;
 
 int program_num = 0;
 int trial_num = 1;
+int started = 0;
 
 
 void setup() {
   
-  Serial.begin(115200);
+  Serial.begin(9600);
   pinMode(CS_PIN, OUTPUT);
   pinMode(CS_TONE_PIN, OUTPUT);
   pinMode(US_PIN, OUTPUT);
-  pinMode(SWITCH_PIN, INPUT);
+  pinMode(SWITCH_PIN, INPUT_PULLUP);
+  pinMode(START_PIN, INPUT_PULLUP);
 
 }
 
 void loop() {
-  //int program_num = digitalRead(SWITCH_PIN);
+  while (true && !started) {
+    digitalWrite(CS_PIN, LOW);
+    digitalWrite(US_PIN, LOW);
+    digitalWrite(CS_TONE_PIN, LOW);
+    if (!digitalRead(START_PIN)) {
+        started = !started;
+        break;
+      }
+  }
+  int program_num = !digitalRead(SWITCH_PIN);
   Serial.println("Trial number: " + String(trial_num) + ", " + String(millis()));
   program(program_num);
   if (trial_num > 60) {
@@ -46,6 +59,11 @@ void loop() {
       // endless loop
       // make reset button
       digitalWrite(CS_PIN, HIGH);
+      if (!digitalRead(START_PIN)) {
+        started = !started;
+        trial_num = 1;
+        break;
+      }
     }
   } else {
     trial_num++;
@@ -97,7 +115,7 @@ void trace_cc() {
   pulse("CS_A", CS_PIN, CS_WIDTH_A);
   wait("ISI_A", ISI_A);
   pulse("US_A", US_PIN, US_WIDTH_A);
-  //pulse_tone("CS_TONE_A", CS_TONE_PIN, CS_TONE_A, CS_WIDTH_A);
+  pulse_tone("CS_TONE_A", CS_TONE_PIN, CS_TONE_A, CS_WIDTH_A);
 }
 
 // 2nd program
